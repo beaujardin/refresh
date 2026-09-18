@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi Page Refresher</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #2f81f7;
+    --green: #3fb950;
+    --red: #f85149;
+    --amber: #d29922;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .brand { font-weight: 600; margin-right: 4px; }
+  .brand span { color: var(--accent); }
+  label.field { display: flex; align-items: center; gap: 6px; color: var(--muted); white-space: nowrap; }
+  input[type=text], input[type=number], select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 9px;
+    font: inherit;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input[readonly] { opacity: .65; cursor: not-allowed; }
+  #url { width: 340px; }
+  input[type=number] { width: 92px; }
+  button {
+    border: 1px solid var(--border);
+    background: #21262d;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { border-color: #8b949e; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: #b62324; border-color: #b62324; color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.mini { padding: 3px 9px; font-weight: 500; font-size: 12px; }
+  a.dl {
+    display: inline-block;
+    border: 1px solid var(--border);
+    background: #21262d;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  a.dl:hover { border-color: #8b949e; }
+  .toggles { display: flex; gap: 12px; align-items: center; color: var(--muted); }
+  .toggles label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  .spacer { flex: 1; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: 1px; }
+  .dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.err { background: var(--red); }
+  #banner {
+    display: none;
+    padding: 8px 14px;
+    background: rgba(210,153,34,.12);
+    border-bottom: 1px solid rgba(210,153,34,.4);
+    color: var(--amber);
+    font-size: 13px;
+  }
+  main { flex: 1; overflow: auto; padding: 14px; }
+  .cards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    min-width: 140px;
+  }
+  .card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  .card .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  td .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #21262d; border: 1px solid var(--border); }
+  td .pill.ok { color: var(--green); border-color: rgba(63,185,80,.4); }
+  td .pill.err { color: var(--red); border-color: rgba(248,81,73,.4); }
+  td .pill.closed { color: var(--muted); }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  #embedPanel {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  #embedPanel[hidden] { display: none; }
+  .embed-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .embed-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    max-height: 340px;
+    overflow: auto;
+  }
+  .embed-grid.collapsed { display: none; }
+  .embed {
+    width: 190px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .embed-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    font-size: 11px;
+    color: var(--muted);
+    background: #21262d;
+  }
+  .embed-bar button { padding: 0 6px; line-height: 16px; font-weight: 700; }
+  .embed iframe { display: block; width: 100%; height: 120px; border: 0; background: #fff; }
+  .help { margin-top: 20px; color: var(--muted); font-size: 13px; }
+  .help summary { cursor: pointer; color: var(--text); font-weight: 600; }
+  .help ul { margin: 8px 0 0; padding-left: 20px; line-height: 1.75; }
+  .help code { background: #21262d; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Multi<span>Refresher</span></div>
+  <label class="field">URL
+    <input id="url" type="text" value="" placeholder="exemple.com ou http://exemple.com" spellcheck="false" autocomplete="off">
+  </label>
+  <label class="field">Intervalle (ms)
+    <input id="interval" type="number" value="800" min="1" max="1000" step="1">
+  </label>
+  <label class="field">Mode
+    <select id="mode">
+      <option value="inline" selected>Intégré (petits cadres en bas)</option>
+      <option value="tab">Onglets</option>
+      <option value="win">Fenêtres</option>
+    </select>
+  </label>
+  <button id="addPage" class="primary">+ Ajouter une page</button>
+  <button id="startStop" class="primary">Démarrer</button>
+  <button id="closeAll" disabled>Fermer les pages</button>
+  <a class="dl" href="multirefresh.zip" download>Télécharger l'extension MultiRefresh</a>
+  <div class="toggles">
+    <label><input id="cachebust" type="checkbox"> Anti-cache</label>
+    <label><input id="keepalive" type="checkbox" checked> Garder actif (anti-throttle)</label>
+  </div>
+</header>
+<div id="banner"></div>
+<main>
+  <div class="cards">
+    <div class="card"><div class="k">Pages</div><div class="v" id="sPages">0</div></div>
+    <div class="card"><div class="k">Rechargements</div><div class="v" id="sTotal">0</div></div>
+    <div class="card"><div class="k">Débit</div><div class="v" id="sRate">0/s</div></div>
+    <div class="card"><div class="k">Erreurs</div><div class="v" id="sErrors">0</div></div>
+    <div class="card"><div class="k">Bloqués</div><div class="v" id="sBlocked">0</div></div>
+    <div class="card"><div class="k">État</div><div class="v"><span id="dot" class="dot"></span><span id="sState" style="font-size:15px">Arrêté</span></div></div>
+  </div>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Statut</th><th>Rechargements</th><th>Erreurs</th><th></th></tr>
+    </thead>
+    <tbody id="rows">
+      <tr><td colspan="5" class="empty">Aucune page. Saisis une URL puis clique sur « + Ajouter une page ».</td></tr>
+    </tbody>
+  </table>
+  <section id="embedPanel" hidden>
+    <div class="embed-head">
+      <span>Aperçus intégrés</span>
+      <span id="embedCount"></span>
+      <div class="spacer"></div>
+      <button id="embedToggle" class="mini">Réduire</button>
+    </div>
+    <div class="embed-grid" id="embedGrid"></div>
+  </section>
+  <details class="help">
+    <summary>Aide</summary>
+    <ul>
+      <li><b>+ Ajouter une page</b> ajoute une page (autant de fois que tu veux : un clic = une page, donc le bloqueur de popups ne se déclenche jamais). <b>Démarrer</b> lance le rafraîchissement ; il devient <b>Arrêter</b> pendant la session.</li>
+      <li><b>Mode « Intégré »</b> : chaque page s'affiche dans un petit cadre en bas de cette page, sans nouvelle fenêtre ni onglet. Pratique pour en ajouter beaucoup. Attention : certains sites interdisent l'affichage en cadre (<code>X-Frame-Options</code>) et resteront vides — dans ce cas, utilise les modes Onglets ou Fenêtres.</li>
+      <li><b>Mode Onglets / Fenêtres</b> : ouvre de vraies pages ; « Fermer les pages » les referme. L'URL est verrouillée pendant le rafraîchissement.</li>
+      <li>Le rafraîchissement est piloté par cet onglet : garde-le ouvert. « Garder actif » empêche le navigateur de ralentir les timers quand l'onglet passe en arrière-plan.</li>
+      <li>Le navigateur plancher les timers à ~4 ms : « 1 ms » donne ~4 ms en pratique.</li>
+      <li>Pour autoriser les popups (modes Onglets/Fenêtres) : <b>Chrome / Edge</b> icône « Popups bloqués » → « Toujours autoriser les popups pour ce site » ; <b>Firefox</b> icône « Popups bloqués » → « Autoriser les popups pour ce site » ; <b>Safari</b> Réglages → Sites web → Fenêtres pop-up → Autoriser.</li>
+    </ul>
+  </details>
+</main>
+<script>
+(function () {
+  var urlInput = document.getElementById('url');
+  var intervalInput = document.getElementById('interval');
+  var modeSel = document.getElementById('mode');
+  var cacheBox = document.getElementById('cachebust');
+  var keepBox = document.getElementById('keepalive');
+  var addPageBtn = document.getElementById('addPage');
+  var startStopBtn = document.getElementById('startStop');
+  var closeAllBtn = document.getElementById('closeAll');
+  var banner = document.getElementById('banner');
+  var rowsEl = document.getElementById('rows');
+  var dot = document.getElementById('dot');
+  var embedPanel = document.getElementById('embedPanel');
+  var embedGrid = document.getElementById('embedGrid');
+  var embedCount = document.getElementById('embedCount');
+  var embedToggle = document.getElementById('embedToggle');
+
+  var sPages = document.getElementById('sPages');
+  var sTotal = document.getElementById('sTotal');
+  var sRate = document.getElementById('sRate');
+  var sErrors = document.getElementById('sErrors');
+  var sBlocked = document.getElementById('sBlocked');
+  var sState = document.getElementById('sState');
+
+  var S = {
+    running: false,
+    pages: [],
+    timer: null,
+    uiTimer: null,
+    target: '',
+    interval: 800,
+    cachebust: false,
+    total: 0,
+    errors: 0,
+    blocked: 0,
+    rate: 0,
+    sampleAt: 0,
+    sampleTotal: 0
+  };
+
+  var audioCtx = null;
+  var audioOsc = null;
+
+  function normalize(raw) {
+    var v = (raw || '').trim();
+    if (!v) return '';
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = 'http://' + v;
+    return v;
+  }
+
+  function clampInt(v, lo, hi) {
+    var n = parseInt(v, 10);
+    if (!isFinite(n)) n = lo;
+    return Math.max(lo, Math.min(hi, n));
+  }
+
+  function withBust(u) {
+    var sep = u.indexOf('?') === -1 ? '?' : '&';
+    return u + sep + '__pr=' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function showBanner(msg) {
+    if (!msg) { banner.style.display = 'none'; banner.textContent = ''; return; }
+    banner.textContent = msg;
+    banner.style.display = 'block';
+  }
+
+  function setState(text, cls) {
+    sState.textContent = text;
+    dot.className = 'dot' + (cls ? ' ' + cls : '');
+  }
+
+  function lock(on) {
+    urlInput.readOnly = on;
+    intervalInput.disabled = on;
+    modeSel.disabled = on;
+    cacheBox.disabled = on;
+    keepBox.disabled = on;
+    closeAllBtn.disabled = S.pages.length === 0;
+  }
+
+  function setStartStop(running) {
+    startStopBtn.textContent = running ? 'Arrêter' : 'Démarrer';
+    startStopBtn.classList.toggle('danger', running);
+    startStopBtn.classList.toggle('primary', !running);
+  }
+
+  function keepAlive(on) {
+    if (on) {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        audioCtx = new Ctx();
+        audioOsc = audioCtx.createOscillator();
+        var g = audioCtx.createGain();
+        g.gain.value = 0.0001;
+        audioOsc.frequency.value = 40;
+        audioOsc.connect(g);
+        g.connect(audioCtx.destination);
+        audioOsc.start();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      } catch (e) { audioCtx = null; audioOsc = null; }
+    } else {
+      try { if (audioOsc) audioOsc.stop(); } catch (e) {}
+      try { if (audioCtx) audioCtx.close(); } catch (e) {}
+      audioCtx = null;
+      audioOsc = null;
+    }
+  }
+
+  function tick() {
+    if (!S.running) return;
+    var u = S.cachebust ? withBust(S.target) : S.target;
+    for (var i = 0; i < S.pages.length; i++) {
+      var p = S.pages[i];
+      if (p.status === 'closed') continue;
+
+      if (p.frame) {
+        try {
+          p.frame.src = u;
+          p.loads++;
+          S.total++;
+          p.status = 'ok';
+        } catch (e) {
+          p.errors++;
+          S.errors++;
+          p.status = 'err';
+        }
+        continue;
+      }
+
+      if (p.win && p.win.closed) { p.status = 'closed'; continue; }
+      try {
+        p.win.location = u;
+        p.loads++;
+        S.total++;
+        p.status = 'ok';
+      } catch (e) {
+        p.errors++;
+        S.errors++;
+        p.status = 'err';
+      }
+    }
+    S.timer = setTimeout(tick, S.interval);
+  }
+
+  function pageDot(p) {
+    if (!p.el) return;
+    var d = p.el.querySelector('.dot');
+    if (!d) return;
+    d.className = 'dot' + (p.status === 'ok' ? ' on' : (p.status === 'err' ? ' err' : ''));
+  }
+
+  function renderUI() {
+    var now = performance.now();
+    if (now - S.sampleAt >= 500) {
+      var dt = (now - S.sampleAt) / 1000;
+      if (dt > 0) S.rate = Math.round((S.total - S.sampleTotal) / dt);
+      S.sampleAt = now;
+      S.sampleTotal = S.total;
+    }
+
+    sPages.textContent = S.pages.length;
+    sTotal.textContent = S.total;
+    sRate.textContent = S.rate + '/s';
+    sErrors.textContent = S.errors;
+    sBlocked.textContent = S.blocked;
+
+    var inline = 0;
+    for (var k = 0; k < S.pages.length; k++) {
+      if (S.pages[k].frame) inline++;
+      pageDot(S.pages[k]);
+    }
+    embedPanel.hidden = inline === 0;
+    embedCount.textContent = inline === 0 ? '' : '(' + inline + ')';
+
+    if (S.pages.length === 0) {
+      rowsEl.innerHTML = '<tr><td colspan="5" class="empty">Aucune page. Saisis une URL puis clique sur « + Ajouter une page ».</td></tr>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < S.pages.length; i++) {
+      var p = S.pages[i];
+      var cls = p.status === 'ok' ? 'ok' : (p.status === 'err' ? 'err' : (p.status === 'closed' ? 'closed' : ''));
+      var label = p.status === 'ok' ? 'active' : (p.status === 'err' ? 'erreur' : (p.status === 'closed' ? 'fermée' : 'ouverture'));
+      html += '<tr data-i="' + i + '">' +
+        '<td>' + p.id + '</td>' +
+        '<td><span class="pill ' + cls + '">' + label + '</span></td>' +
+        '<td>' + p.loads + '</td>' +
+        '<td>' + p.errors + '</td>' +
+        '<td><button class="mini" data-act="focus" data-i="' + i + '">Focus</button> ' +
+        '<button class="mini" data-act="close" data-i="' + i + '">Fermer</button></td>' +
+        '</tr>';
+    }
+    rowsEl.innerHTML = html;
+  }
+
+  function createPage(target, mode) {
+    if (mode === 'inline') {
+      var el = document.createElement('div');
+      el.className = 'embed';
+      el.innerHTML =
+        '<div class="embed-bar"><span class="dot"></span><span class="t">#</span>' +
+        '<span class="spacer"></span>' +
+        '<button class="mini" data-act="close" title="Fermer ce cadre">×</button></div>' +
+        '<iframe></iframe>';
+      embedGrid.appendChild(el);
+      var frame = el.querySelector('iframe');
+      frame.src = target;
+      return { win: null, frame: frame, el: el };
+    }
+    var w = mode === 'win'
+      ? window.open(target, '_blank', 'width=900,height=650')
+      : window.open(target, '_blank');
+    if (w) {
+      try { w.blur(); } catch (e) {}
+      try { window.focus(); } catch (e) {}
+    }
+    return { win: w, frame: null, el: null };
+  }
+
+  function registerPage(ref) {
+    var idx = S.pages.length;
+    var page = { id: idx + 1, win: ref.win, frame: ref.frame, el: ref.el, loads: 0, errors: 0, status: 'opening' };
+    S.pages.push(page);
+    if (page.el) {
+      var t = page.el.querySelector('.t');
+      if (t) t.textContent = '#' + page.id;
+      var b = page.el.querySelector('button[data-act]');
+      if (b) b.setAttribute('data-i', idx);
+    }
+    return page;
+  }
+
+  function closePage(p) {
+    if (p.frame) {
+      if (p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el);
+    } else if (p.win) {
+      try { if (!p.win.closed) p.win.close(); } catch (e) {}
+    }
+    p.frame = null;
+    p.win = null;
+    p.el = null;
+    p.status = 'closed';
+  }
+
+  function addPage() {
+    var mode = modeSel.value;
+    var target = S.running ? S.target : normalize(urlInput.value);
+    if (!target) { showBanner('Saisis une URL valide.'); return; }
+
+    if (!S.running) {
+      if (/^http:\/\//i.test(target) && location.protocol === 'https:') {
+        showBanner('Cette page est servie en HTTPS : les cibles HTTP peuvent être bloquées (contenu mixte). Sers le lanceur en HTTP.');
+      } else {
+        showBanner('');
+      }
+    }
+
+    var ref = createPage(target, mode);
+    if (mode !== 'inline' && !ref.win) {
+      S.blocked++;
+      showBanner('Popup bloquée par le navigateur. Réessaie : un clic = une page.');
+      renderUI();
+      return;
+    }
+
+    S.target = target;
+    registerPage(ref);
+    renderUI();
+  }
+
+  function start() {
+    if (S.running) return;
+    if (S.pages.length === 0) { showBanner('Ajoute au moins une page avant de démarrer.'); return; }
+
+    S.interval = clampInt(intervalInput.value, 1, 1000);
+    S.cachebust = cacheBox.checked;
+    S.total = 0;
+    S.errors = 0;
+    S.rate = 0;
+    S.sampleAt = performance.now();
+    S.sampleTotal = 0;
+    S.running = true;
+    keepAlive(keepBox.checked);
+    setState('En cours', 'on');
+    setStartStop(true);
+    lock(true);
+    S.timer = setTimeout(tick, S.interval);
+    S.uiTimer = setInterval(renderUI, 250);
+    renderUI();
+  }
+
+  function stop(closePages) {
+    S.running = false;
+    if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+    if (S.uiTimer) { clearInterval(S.uiTimer); S.uiTimer = null; }
+    if (closePages) {
+      for (var i = 0; i < S.pages.length; i++) {
+        closePage(S.pages[i]);
+      }
+      S.pages = [];
+      S.rate = 0;
+    }
+    keepAlive(false);
+    lock(false);
+    setState('Arrêté', '');
+    setStartStop(false);
+    renderUI();
+  }
+
+  rowsEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    var i = parseInt(btn.getAttribute('data-i'), 10);
+    var p = S.pages[i];
+    if (!p) return;
+    if (btn.getAttribute('data-act') === 'focus') {
+      if (p.win) { try { p.win.focus(); } catch (err) {} }
+      else if (p.frame) { try { p.frame.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) {} }
+    } else {
+      closePage(p);
+      renderUI();
+    }
+  });
+
+  embedGrid.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    var i = parseInt(btn.getAttribute('data-i'), 10);
+    var p = S.pages[i];
+    if (!p) return;
+    closePage(p);
+    renderUI();
+  });
+
+  embedToggle.addEventListener('click', function () {
+    var collapsed = embedGrid.classList.toggle('collapsed');
+    embedToggle.textContent = collapsed ? 'Afficher' : 'Réduire';
+  });
+
+  addPageBtn.addEventListener('click', addPage);
+  startStopBtn.addEventListener('click', function () {
+    if (S.running) stop(false); else start();
+  });
+  closeAllBtn.addEventListener('click', function () { stop(true); });
+  urlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') addPage(); });
+
+  intervalInput.addEventListener('change', function () {
+    intervalInput.value = clampInt(intervalInput.value, 1, 1000);
+  });
+
+  window.addEventListener('beforeunload', function () {
+    if (S.timer) clearTimeout(S.timer);
+    if (S.uiTimer) clearInterval(S.uiTimer);
+  });
+
+  renderUI();
+})();
+</script>
+</body>
+</html>
